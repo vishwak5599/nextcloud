@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nextcloud_website</title>
+</head>
+<body>
+
+  <h1>Upload File</h1>
+  <form id="uploadForm">
+    <label for="file">Choose a file:</label>
+    <input type="file" id="file" name="file" required>
+    <input type="text" id="pathOfFile" name="pathOfFile" placeholder="uploads/documents">
+    <button type="submit">Upload</button>
+  </form>
+
+  <h1>Download File</h1>
+  <form id="downloadForm">
+    <label for="downloadFileName">File Name:</label>
+    <input type="text" id="downloadFileName" name="downloadFileName" placeholder="Documents/example.txt" required>
+    <button type="submit">Download</button>
+  </form>
+
+  <h1>Fetch Content</h1>
+  <form id="fetchForm">
+    <label for="fetchFileName">File Name:</label>
+    <input type="text" id="fetchFileName" name="fetchFileName" placeholder="Documents/example.txt" required>
+    <button type="submit">Fetch</button>
+    <div id="fetchResult"></div>
+  </form>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async function (event) {
+      event.preventDefault();
+  
+    const fileInput = document.getElementById('file');
+    const file = fileInput.files[0];
+    const pathOfFileInput = document.getElementById('pathOfFile');
+    const pathOfFile = pathOfFileInput.value;
+
+    const username = prompt('Enter username:');
+    const password = prompt('Enter password:');
+
+    if (!username || !password) {
+      console.error('Username or password not provided.');
+      alert("Don't leave inputs as blank!!")
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('pathOfFile', pathOfFile);
+    formData.append('username', username);
+    formData.append('password', password);
+  
+      try {
+        const response = await fetch('http://localhost:3000/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+  
+        if (response.ok) {
+          console.log('File uploaded successfully!');
+        } else {
+          console.error('Error uploading file 1:', response.statusText);
+          alert('Error uploading file!!');
+        }
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    });
+
+    document.getElementById('downloadForm').addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      const fileName = document.getElementById('downloadFileName').value;
+      const username = prompt('Enter username:');
+      const password = prompt('Enter password:');
+
+      if (!username || !password) {
+        console.error('Username or password not provided.');
+        alert("Don't leave inputs as blank!!")
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:3000/api/download', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ fileName }),
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = fileName;
+          link.click();
+        } else {
+          console.error('Error downloading file:', response.statusText);
+          alert('Error downloading file!!');
+        }
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    });
+
+    document.getElementById('fetchForm').addEventListener('submit', async function (event) {
+      event.preventDefault();
+  
+      const fileName = document.getElementById('fetchFileName').value;
+      const username = prompt('Enter username:');
+      const password = prompt('Enter password:');
+
+      if (!username || !password) {
+        console.error('Username or password not provided.');
+        alert("Don't leave inputs as blank!!")
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:3000/api/fetch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ fileName }),
+        });
+  
+        if (response.ok) {
+          const contentType = response.headers.get('Content-Type');
+  
+          if (contentType.startsWith('text')) {
+            const content = await response.text();
+            let numbersArray = content.split(" ");
+            console.log(numbersArray);
+            let sum_value=0;
+            for(let i=0;i<numbersArray.length;i++){
+              sum_value+=parseInt(numbersArray[i]);
+            }
+            console.log(sum_value);
+            document.getElementById('fetchResult').innerHTML='';
+            const sum_element = document.createElement('p');
+            document.getElementById('fetchResult').appendChild(sum_element);
+            sum_element.textContent=sum_value;
+          } else if (contentType.startsWith('image')) {
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+  
+            const imageElement = document.createElement('img');
+            imageElement.src = objectUrl;
+            imageElement.style.width = '300px';
+            imageElement.style.height = '300px';
+
+            document.getElementById('fetchResult').innerHTML = '';
+            document.getElementById('fetchResult').appendChild(imageElement);
+          } else {
+            console.error('Unsupported content type:', contentType);
+            alert('Unsupported content type!!');
+          }
+        } else {
+          console.error('Error fetching file content:', response.statusText);
+          alert('Error fetching file content!!');
+        }
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    });
+
+  </script>
+
+</body>
+</html>
